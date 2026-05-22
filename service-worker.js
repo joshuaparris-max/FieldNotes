@@ -1,12 +1,13 @@
 /**
  * FieldNotes — offline shell cache (static assets only)
  */
-const CACHE_NAME = "fieldnotes-shell-v2";
+const CACHE_NAME = "fieldnotes-shell-v3";
 
 const SHELL_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./constants.js",
   "./data.js",
   "./format.js",
   "./ui.js",

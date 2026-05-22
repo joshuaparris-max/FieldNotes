@@ -1,7 +1,9 @@
 /**
- * FieldNotes — formatting, ticket export, filenames
+ * FieldNotes — formatting, ticket export, filenames, badges
  */
 (function (global) {
+  const C = global.FieldNotesConstants;
+
   function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text == null ? "" : String(text);
@@ -23,10 +25,7 @@
 
   function formatDateFile(iso) {
     const d = iso ? new Date(iso) : new Date();
-    if (Number.isNaN(d.getTime())) {
-      const now = new Date();
-      return now.toISOString().slice(0, 10);
-    }
+    if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
     return d.toISOString().slice(0, 10);
   }
 
@@ -51,10 +50,37 @@
     return t.slice(0, maxLen).trimEnd() + "…";
   }
 
+  function slugify(text) {
+    return (text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48);
+  }
+
+  function pillBadge(label, className) {
+    const slug = slugify(label) || "other";
+    return `<span class="pill ${className} pill-${slug}">${escapeHtml(label)}</span>`;
+  }
+
   function contextBadge(context) {
-    const label = escapeHtml(context || "Other");
-    const slug = (context || "other").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    return `<span class="context-badge context-${slug}">${label}</span>`;
+    return pillBadge(context || "Other", "pill-context");
+  }
+
+  function statusBadge(status) {
+    return pillBadge(status || "Open", "pill-status");
+  }
+
+  function priorityBadge(priority) {
+    return pillBadge(priority || "Normal", "pill-priority");
+  }
+
+  function categoryBadge(category) {
+    return pillBadge(category || "Other", "pill-category");
+  }
+
+  function metaBadges(note) {
+    return [statusBadge(note.status), priorityBadge(note.priority), categoryBadge(note.category), contextBadge(note.context)].join("");
   }
 
   function formatTicketText(note) {
@@ -62,12 +88,18 @@
     const lines = [
       ["Summary", note.summary],
       ["Context", note.context],
+      ["Status", note.status],
+      ["Priority", note.priority],
+      ["Category", note.category],
       ["Reference", note.reference],
       ["Issue / Request", note.issue],
       ["Checked", note.checked],
       ["Changed", note.changed],
       ["Result", note.result],
+      ["Resolution Summary", note.resolutionSummary],
       ["Follow-up", note.followUp],
+      ["Escalated To", note.escalatedTo],
+      ["Time Spent", note.timeSpent],
       ["Tags", note.tags],
       ["Updated", formatDate(note.updatedAt)],
       ["Created", formatDate(note.createdAt)],
@@ -76,13 +108,12 @@
   }
 
   function safeExportFilename(note) {
-    const slug = (note.summary || "fieldnote")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 48) || "fieldnote";
-    const date = formatDateFile(note.updatedAt);
-    return `fieldnote-${slug}-${date}.txt`;
+    const slug = slugify(note.summary) || "fieldnote";
+    return `fieldnote-${slug}-${formatDateFile(note.updatedAt)}.txt`;
+  }
+
+  function backupJsonFilename() {
+    return `fieldnotes-backup-${formatDateFile()}.json`;
   }
 
   function fieldBlock(label, value) {
@@ -101,8 +132,13 @@
     tagHtml,
     excerpt,
     contextBadge,
+    statusBadge,
+    priorityBadge,
+    categoryBadge,
+    metaBadges,
     formatTicketText,
     safeExportFilename,
+    backupJsonFilename,
     fieldBlock,
   };
 })(window);

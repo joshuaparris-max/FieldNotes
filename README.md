@@ -1,33 +1,40 @@
 # IT Support Field Notes
 
-A simple, browser-based app for recording **IT support and incident field notes** — troubleshooting steps, outcomes, and follow-ups. Built for work, learning, lab testing, and client support contexts (Avance IT, DCS, Parris Tech Services, personal lab, and more).
+A **plain static** browser app for recording structured IT support and incident notes — troubleshooting steps, outcomes, and follow-ups. Built for Josh’s work and learning contexts (Avance IT, DCS, Parris Tech Services, personal lab, and more).
 
-Data is stored **only in your browser** using `localStorage`. There is no backend, no accounts, and no API keys.
+**Repository:** [github.com/joshuaparris-max/FieldNotes](https://github.com/joshuaparris-max/FieldNotes)
 
-## Important — not for sensitive data
+---
 
-This app is **not suitable** for storing:
+## Who it is for
 
-- Passwords or private credentials
-- Student names
-- Client-sensitive or confidential information
-- Medical or private personal data
+IT support staff, technicians, and learners who need a **fast, local, private** way to capture field notes without a ticket system login or backend.
 
-Use the **Reference** field only for safe identifiers such as ticket numbers or device names.
+## What problem it solves
 
-## Main features
+Ticket systems are not always at hand during walk-ups, labs, or learning sessions. FieldNotes gives you a **structured template** (issue → checked → changed → result → follow-up) and **one-click copy** for pasting into HaloPSA, email, or handover notes — without storing data on a server.
 
-- Structured IT incident notes (summary, context, issue, checked, changed, result, follow-up, reference, tags)
+## Current features
+
+- Structured incident notes with status, priority, and category
+- Contexts: Avance IT, DCS, Parris Tech Services, Personal Lab, Other
 - Search across all fields
-- `localStorage` persistence (per browser/device)
-- **Copy ticket note** — formatted text for pasting into tickets or email
-- **Export .txt** — download the same formatted note as a text file
-- Optional **browser voice input** (Web Speech API — no external service)
-- Basic **offline / PWA** support via service worker (production hosts only)
+- Copy full ticket note + export single `.txt`
+- Export all notes as JSON backup
+- Optional browser voice dictation (Web Speech API)
+- Basic offline/PWA shell cache
+- Legacy note migration from older app versions
+- Clear local data (with strong confirmation)
 
-## Run locally
+## Privacy warning
 
-Use a static file server (recommended):
+**Do not store** passwords, student names, client-sensitive information, medical/private data, or credentials in this app. See [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md).
+
+## LocalStorage
+
+Notes are saved under the key `fieldnotes_incidents_v2` in your browser only. They do not sync across devices. Export JSON before clearing browser data or using “Clear all local data”.
+
+## Quick start
 
 ```bash
 cd FieldNotes
@@ -36,49 +43,69 @@ python -m http.server 8765
 
 Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/)
 
-> Service worker registration is **skipped** on `localhost` / `127.0.0.1` to avoid stale cache issues during development.
+> Service worker registration is skipped on `localhost` during development.
 
-## Deploy on Vercel
-
-1. Import [joshuaparris-max/FieldNotes](https://github.com/joshuaparris-max/FieldNotes) on [Vercel](https://vercel.com).
-2. Project settings:
+## Vercel deployment (summary)
 
 | Setting | Value |
 |--------|--------|
-| **Framework Preset** | Other |
-| **Root Directory** | `./` |
-| **Build Command** | *(leave blank)* |
-| **Output Directory** | `.` or *(leave blank)* |
-| **Install Command** | *(leave blank)* |
-| **Environment variables** | *(none)* |
+| Framework Preset | **Other** |
+| Root Directory | **`./`** |
+| Build / Install | *(blank)* |
+| Output Directory | **`.`** or *(blank)* |
+| Environment variables | **none** |
 
-3. Deploy. Static files are served from the repo root with no build step.
+Full steps: [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md)
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [USER_GUIDE.md](docs/USER_GUIDE.md) | How to use the app |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Code and data flow |
+| [ROADMAP.md](docs/ROADMAP.md) | Phased product plan |
+| [TODO.md](docs/TODO.md) | Prioritised backlog |
+| [TEST_PLAN.md](docs/TEST_PLAN.md) | Manual test checklists |
+| [SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) | Safety and data risks |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Release history |
+| [DECISIONS.md](docs/DECISIONS.md) | Architecture decisions |
+| [VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) | Deploy and troubleshoot |
+
+## Known limitations
+
+- No cloud sync, accounts, or encryption
+- No import-from-JSON UI yet (export only)
+- No filters/sort UI yet (search only)
+- Voice input varies by browser
+- PWA is shell-cache only, not full offline-first
+
+## Roadmap (summary)
+
+1. **Phase 1** — Stabilise MVP (current)
+2. **Phase 2** — IT workflow (filters, templates, more copy formats)
+3. **Phase 3** — Backup/import (JSON import, CSV)
+4. **Phase 4** — Productivity (pin, archive, dark mode, shortcuts)
+5. **Phase 5** — Future optional sync (not planned now)
+
+Details: [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## Project structure
 
 ```
 FieldNotes/
 ├── index.html
+├── constants.js
+├── data.js
+├── format.js
+├── ui.js
+├── actions.js
+├── boot.js
 ├── styles.css
-├── data.js              # localStorage + v1 → v2 migration
-├── format.js            # dates, ticket text, export filename
-├── ui.js                # views and forms
-├── actions.js           # navigation, copy, export, voice
-├── boot.js              # startup + service worker (non-localhost)
-├── service-worker.js    # offline app shell cache
+├── service-worker.js
 ├── manifest.webmanifest
 ├── icon.svg
-└── README.md
+└── docs/
 ```
-
-## Storage keys
-
-| Key | Purpose |
-|-----|---------|
-| `fieldnotes_incidents_v2` | Current IT incident notes |
-| `fieldnotes_notes_v1` | Legacy generic notes (read once for migration; not deleted) |
-
-Older notes are migrated automatically into the v2 format on first load if v2 is empty.
 
 ## License
 

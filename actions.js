@@ -1,5 +1,5 @@
 /**
- * FieldNotes — actions, copy/export, voice input
+ * FieldNotes — actions, copy/export, voice, data tools
  */
 (function (global) {
   const Data = global.FieldNotesData;
@@ -25,20 +25,39 @@
     return {
       summary: fd.get("summary"),
       context: fd.get("context"),
+      status: fd.get("status"),
+      priority: fd.get("priority"),
+      category: fd.get("category"),
       issue: fd.get("issue"),
       checked: fd.get("checked"),
       changed: fd.get("changed"),
       result: fd.get("result"),
+      resolutionSummary: fd.get("resolutionSummary"),
       followUp: fd.get("followUp"),
       reference: fd.get("reference"),
+      escalatedTo: fd.get("escalatedTo"),
+      timeSpent: fd.get("timeSpent"),
       tags: fd.get("tags"),
     };
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   function showList() {
     state.view = "list";
     state.activeId = null;
     UI.closeCopyModal();
+    UI.closeClearDataModal();
     stopDictation();
     UI.renderList(Data.search(state.searchQuery), state.searchQuery);
   }
@@ -47,6 +66,7 @@
     state.view = "form-new";
     state.activeId = null;
     UI.closeCopyModal();
+    UI.closeClearDataModal();
     stopDictation();
     UI.renderForm(null, "new", speechAvailable);
   }
@@ -121,10 +141,7 @@
       }
     };
 
-    recognition.onerror = () => {
-      stopDictation();
-    };
-
+    recognition.onerror = () => stopDictation();
     recognition.onend = () => {
       if (activeRecognition === recognition) {
         button.classList.remove("btn-dictate-active");
@@ -148,37 +165,60 @@
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
+        UI.showToast("Copied ticket note");
         return;
       }
     } catch {
-      /* fallback below */
+      /* fallback */
     }
 
     UI.showCopyFallback(text);
+    UI.showToast("Copy manually from dialog");
   }
 
   function exportTxt(id) {
     const note = Data.getById(id);
     if (!note) return;
     const text = Fmt.formatTicketText(note);
-    const filename = Fmt.safeExportFilename(note);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, Fmt.safeExportFilename(note));
+    UI.showToast("Exported text file");
+  }
+
+  function exportAllJson() {
+    const payload = Data.exportAllJson();
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    downloadBlob(blob, Fmt.backupJsonFilename());
+    UI.showToast("Exported JSON backup");
+  }
+
+  function clearAllDataFinal() {
+    Data.clearAllLocalData();
+    UI.closeClearDataModal();
+    UI.showToast("All local notes cleared");
+    state.searchQuery = "";
+    showList();
   }
 
   function handleClick(e) {
-    const modalBtn = e.target.closest("#copy-modal [data-action]");
-    if (modalBtn) {
+    const clearModal = e.target.closest("#clear-modal [data-action]");
+    if (clearModal) {
       e.preventDefault();
-      if (modalBtn.getAttribute("data-action") === "close-modal") UI.closeCopyModal();
+      const action = clearModal.getAttribute("data-action");
+      if (action === "close-clear-modal") UI.closeClearDataModal();
+      if (action === "clear-data-step2") UI.showClearDataModal(2);
+      if (action === "clear-data-final") clearAllDataFinal();
+      return;
+    }
+
+    const copyModalBtn = e.target.closest("#copy-modal [data-action]");
+    if (copyModalBtn) {
+      e.preventDefault();
+      if (copyModalBtn.getAttribute("data-action") === "close-modal") {
+        UI.closeCopyModal();
+        document.getElementById("app")?.querySelector("[data-action='copy-ticket']")?.focus();
+      }
       return;
     }
 
@@ -195,7 +235,19 @@
       return;
     }
 
-    if (["open", "back", "new", "edit", "delete"].includes(action)) {
+    if (
+      [
+        "open",
+        "back",
+        "new",
+        "edit",
+        "delete",
+        "copy-ticket",
+        "export-txt",
+        "export-all-json",
+        "clear-data-start",
+      ].includes(action)
+    ) {
       e.preventDefault();
     }
 
@@ -215,6 +267,7 @@
       case "delete":
         if (id && confirm("Delete this incident note? This cannot be undone.")) {
           Data.remove(id);
+          UI.showToast("Deleted incident");
           showList();
         }
         break;
@@ -223,6 +276,12 @@
         break;
       case "export-txt":
         if (id) exportTxt(id);
+        break;
+      case "export-all-json":
+        exportAllJson();
+        break;
+      case "clear-data-start":
+        UI.showClearDataModal(1);
         break;
       default:
         break;
@@ -242,9 +301,11 @@
     if (mode === "edit") {
       const noteId = form.getAttribute("data-id");
       Data.update(noteId, payload);
+      UI.showToast("Saved incident");
       showDetail(noteId);
     } else {
       const note = Data.create(payload);
+      UI.showToast("Saved incident");
       showDetail(note.id);
     }
   }
@@ -269,7 +330,10 @@
     app.addEventListener("submit", handleSubmit);
     app.addEventListener("input", handleSearch);
     document.addEventListener("click", (e) => {
-      if (e.target.classList.contains("modal-overlay")) UI.closeCopyModal();
+      if (e.target.classList.contains("modal-overlay")) {
+        if (e.target.id === "copy-modal") UI.closeCopyModal();
+        if (e.target.id === "clear-modal") UI.closeClearDataModal();
+      }
     });
   }
 
