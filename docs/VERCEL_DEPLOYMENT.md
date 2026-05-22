@@ -46,7 +46,7 @@ Production URL will look like `https://field-notes-*.vercel.app` or your custom 
 | Check | Action |
 |-------|--------|
 | 404 on `*.js` | Ensure scripts are at repo root; paths in `index.html` are relative (`constants.js`, not `/constants.js` unless intentional) |
-| Console error “FieldNotesData undefined” | Script order: `constants.js` before `data.js` before `format.js` → `ui.js` → `actions.js` → `boot.js` |
+| Console error “FieldNotesData undefined” | Script order: `constants.js` → `prefs.js` → `templates.js` → `data.js` → `format.js` → `ui.js` → `actions.js` → `boot.js` |
 | Old deployment | Hard refresh (Ctrl+Shift+R) |
 | Wrong root directory | Root must be `./` if app files are at repo root |
 
@@ -64,7 +64,7 @@ Symptoms: old UI after deploy, missing buttons, wrong styles.
 
 **Fix for developers:**
 
-- Service worker cache name bumped in `service-worker.js` (`fieldnotes-shell-v3`) on releases
+- Service worker cache name bumped in `service-worker.js` (`fieldnotes-shell-v4`) on releases
 - Local dev skips SW on `localhost` / `127.0.0.1`
 
 **After deploy:** Ask testers to hard-refresh once if they used an older PWA install.

@@ -30,11 +30,27 @@ Open: [http://127.0.0.1:8765/](http://127.0.0.1:8765/)
 - [ ] **Dictate** buttons present; app works if unsupported (disabled state)
 - [ ] **Data tools** only on list view, not on form/detail
 
+### Phase 2/3 workflow
+
+- [ ] **Filter & sort** — context/status/priority/category; combines with search
+- [ ] **Clear filters** resets filter fields; sort preference persists
+- [ ] **Use template** on new form — confirm if form has content; fields prefilled
+- [ ] **Quick fill** snippet appends to focused textarea
+- [ ] **Pin** / **Unpin** — pinned notes sort above others
+- [ ] **Archive** / **Unarchive** — hidden unless “Show archived” checked
+- [ ] **Privacy mode** — list hides issue/result preview
+- [ ] **Theme** light/dark/system persists after reload
+- [ ] **Copy** full, short, escalation, manager-safe, learning — toast each
+- [ ] **Export CSV** and **Export all TXT** download with dated filenames
+- [ ] **Import JSON merge** — adds notes; duplicate IDs handled
+- [ ] **Import JSON replace** — warns; replaces after valid JSON
+- [ ] Round-trip: export JSON → clear data → import → notes return
+
 ---
 
 ## Migration tests
 
-- [ ] Existing v2 notes load with default status/priority/category
+- [ ] Existing v2/v3 notes load; upgrade to schema v4 (`pinned`, `archived` false)
 - [ ] Legacy v1 key still present if never migrated; migration populates v2 when v2 was empty
 - [ ] Old note content visible (summary/issue/reference) after upgrade
 
@@ -55,7 +71,7 @@ Open: [http://127.0.0.1:8765/](http://127.0.0.1:8765/)
 ## Copy / export tests
 
 - [ ] Copied text includes Status, Priority, Category, Resolution Summary, Escalated To, Time Spent
-- [ ] JSON export contains `schemaVersion: 3` and `notes` array
+- [ ] JSON export contains `schemaVersion: 4` (or current) and `notes` array
 - [ ] `.txt` filename is filesystem-safe (no special chars)
 
 ---

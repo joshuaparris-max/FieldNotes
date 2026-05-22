@@ -57,6 +57,14 @@ Copied ticket text may land in clipboard history tools or sync (e.g. cloud clipb
 
 ---
 
+## Privacy mode
+
+**Privacy mode** (top bar) hides issue/result preview text on the home list. It does **not** encrypt data or remove sensitive text from detail view or exports. Use it when others might glance at your screen; still avoid storing secrets in notes.
+
+UI preferences (including privacy mode and theme) are stored in `fieldnotes_ui_prefs_v1` — separate from incident notes.
+
+---
+
 ## Shared-device risk
 
 Anyone with access to your unlocked browser profile can open DevTools and read localStorage. Log out of shared machines; use **Clear all local data** when finished.

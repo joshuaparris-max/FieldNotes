@@ -91,3 +91,23 @@ Short records of important project decisions.
 **Why:** Avoid second migration key confusion; preserve existing user data.
 
 **Consequences:** `upgradeStoredNotesIfNeeded` rewrites array when upgrading fields.
+
+---
+
+## ADR-010 — Schema v4 (pin, archive) + separate UI prefs
+
+**Decision:** Schema v4 adds `pinned`, `archived`, optional `templateUsed`. UI filters/theme/privacy in `fieldnotes_ui_prefs_v1`.
+
+**Why:** Workflow fields belong on notes; UI state should not mix into incident backup JSON shape unnecessarily (prefs excluded from export payload).
+
+**Consequences:** Migration compares **raw** stored JSON before normalize (same pattern as v3 fix).
+
+---
+
+## ADR-011 — JSON import merge/replace without backend
+
+**Decision:** Client-side validation; replace only after confirm; merge resolves duplicate IDs by `updatedAt`.
+
+**Why:** User-owned backups; no server trust boundary.
+
+**Consequences:** User must understand replace wipes current notes; docs and modal warnings required.

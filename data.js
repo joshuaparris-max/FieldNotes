@@ -1,5 +1,5 @@
 /**
- * FieldNotes — IT incident notes (localStorage, schema v3)
+ * FieldNotes — IT incident notes (localStorage, schema v4)
  */
 (function (global) {
   const C = global.FieldNotesConstants;
@@ -26,7 +26,6 @@
     return raw && (raw.title !== undefined || raw.body !== undefined) && raw.issue === undefined;
   }
 
-  /** Normalize any stored note to schema v3 shape with safe defaults */
   function normalizeNote(raw) {
     if (!raw || !raw.id) return null;
 
@@ -73,51 +72,48 @@
       resolutionSummary: (raw.resolutionSummary || "").trim(),
       timeSpent: (raw.timeSpent || "").trim(),
       escalatedTo: (raw.escalatedTo || "").trim(),
+      pinned: !!raw.pinned,
+      archived: !!raw.archived,
+      templateUsed: (raw.templateUsed || "").trim(),
       schemaVersion: C.SCHEMA_VERSION,
     };
   }
 
-  function migrateFromV1() {
-    if (migrationDone) return;
-    migrationDone = true;
-
-    try {
-      const v2raw = localStorage.getItem(STORAGE_KEY_V2);
-      if (v2raw) {
-        const v2 = JSON.parse(v2raw);
-        if (Array.isArray(v2) && v2.length > 0) return;
-      }
-
-      const v1raw = localStorage.getItem(STORAGE_KEY_V1);
-      if (!v1raw) return;
-
-      const v1 = JSON.parse(v1raw);
-      if (!Array.isArray(v1) || v1.length === 0) return;
-
-      const migrated = v1.map(normalizeNote).filter(Boolean);
-      if (migrated.length > 0) {
-        localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(migrated));
-      }
-    } catch {
-      /* v1 preserved */
-    }
-  }
-
-  /** True when the raw stored object is missing v3 fields (compare before normalize). */
   function noteNeedsUpgrade(raw) {
     if (!raw || !raw.id) return false;
     if (isLegacyNote(raw)) return true;
-    if (raw.schemaVersion !== C.SCHEMA_VERSION) return true;
+    if (!raw.schemaVersion || raw.schemaVersion < C.SCHEMA_VERSION) return true;
     if (!inList(raw.status, C.STATUSES)) return true;
     if (!inList(raw.priority, C.PRIORITIES)) return true;
     if (!inList(raw.category, C.CATEGORIES)) return true;
     if (!Object.prototype.hasOwnProperty.call(raw, "resolutionSummary")) return true;
     if (!Object.prototype.hasOwnProperty.call(raw, "timeSpent")) return true;
     if (!Object.prototype.hasOwnProperty.call(raw, "escalatedTo")) return true;
+    if (!Object.prototype.hasOwnProperty.call(raw, "pinned")) return true;
+    if (!Object.prototype.hasOwnProperty.call(raw, "archived")) return true;
     return false;
   }
 
-  /** Persist normalized notes when stored JSON still lacks v3 shape. */
+  function migrateFromV1() {
+    if (migrationDone) return;
+    migrationDone = true;
+    try {
+      const v2raw = localStorage.getItem(STORAGE_KEY_V2);
+      if (v2raw) {
+        const v2 = JSON.parse(v2raw);
+        if (Array.isArray(v2) && v2.length > 0) return;
+      }
+      const v1raw = localStorage.getItem(STORAGE_KEY_V1);
+      if (!v1raw) return;
+      const v1 = JSON.parse(v1raw);
+      if (!Array.isArray(v1) || v1.length === 0) return;
+      const migrated = v1.map(normalizeNote).filter(Boolean);
+      if (migrated.length > 0) localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(migrated));
+    } catch {
+      /* v1 preserved */
+    }
+  }
+
   function upgradeStoredNotesIfNeeded(parsed, upgraded) {
     if (parsed.some(noteNeedsUpgrade)) save(upgraded);
     return upgraded;
@@ -162,9 +158,42 @@
       note.escalatedTo,
       note.timeSpent,
       note.tags,
+      note.templateUsed,
     ]
       .join(" ")
       .toLowerCase();
+  }
+
+  function compareNotes(a, b, sortKey) {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    switch (sortKey) {
+      case "updatedAsc":
+        return new Date(a.updatedAt) - new Date(b.updatedAt);
+      case "priority":
+        return (C.PRIORITY_ORDER[a.priority] ?? 9) - (C.PRIORITY_ORDER[b.priority] ?? 9);
+      case "status":
+        return a.status.localeCompare(b.status);
+      case "category":
+        return a.category.localeCompare(b.category);
+      case "context":
+        return a.context.localeCompare(b.context);
+      case "summaryAsc":
+        return a.summary.localeCompare(b.summary);
+      case "updatedDesc":
+      default:
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+    }
+  }
+
+  function applyFilters(notes, filters) {
+    let list = notes;
+    if (!filters.showArchived) list = list.filter((n) => !n.archived);
+    if (filters.pinnedOnly) list = list.filter((n) => n.pinned);
+    if (filters.context) list = list.filter((n) => n.context === filters.context);
+    if (filters.status) list = list.filter((n) => n.status === filters.status);
+    if (filters.priority) list = list.filter((n) => n.priority === filters.priority);
+    if (filters.category) list = list.filter((n) => n.category === filters.category);
+    return list;
   }
 
   function payloadFromFields(fields) {
@@ -184,10 +213,11 @@
       escalatedTo: fields.escalatedTo,
       timeSpent: fields.timeSpent,
       tags: fields.tags,
+      templateUsed: fields.templateUsed,
     };
   }
 
-  function applyPayload(note, fields) {
+  function applyPayload(note, fields, preserveMeta) {
     const p = payloadFromFields(fields);
     note.summary = (p.summary || "").trim() || "Untitled incident";
     note.context = inList(p.context, C.CONTEXTS) ? p.context : "Other";
@@ -204,9 +234,41 @@
     note.escalatedTo = (p.escalatedTo || "").trim();
     note.timeSpent = (p.timeSpent || "").trim();
     note.tags = (p.tags || "").trim();
+    if (p.templateUsed) note.templateUsed = p.templateUsed;
+    if (!preserveMeta) {
+      note.pinned = !!note.pinned;
+      note.archived = !!note.archived;
+    }
     note.schemaVersion = C.SCHEMA_VERSION;
     note.updatedAt = new Date().toISOString();
     return note;
+  }
+
+  function parseImportNotes(data) {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === "object" && Array.isArray(data.notes)) return data.notes;
+    return null;
+  }
+
+  function mergeImportedNotes(existing, imported) {
+    const byId = new Map(existing.map((n) => [n.id, n]));
+    imported.forEach((raw) => {
+      const norm = normalizeNote(raw);
+      if (!norm) return;
+      const prev = byId.get(norm.id);
+      if (!prev) {
+        byId.set(norm.id, norm);
+        return;
+      }
+      const prevTime = new Date(prev.updatedAt).getTime();
+      const newTime = new Date(norm.updatedAt).getTime();
+      if (newTime >= prevTime) byId.set(norm.id, norm);
+      else {
+        norm.id = newId();
+        byId.set(norm.id, norm);
+      }
+    });
+    return Array.from(byId.values());
   }
 
   global.FieldNotesData = {
@@ -215,13 +277,23 @@
     STATUSES: C.STATUSES,
     PRIORITIES: C.PRIORITIES,
     CATEGORIES: C.CATEGORIES,
+    SORT_OPTIONS: C.SORT_OPTIONS,
 
     getAll() {
-      return loadRaw().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return loadRaw();
     },
 
     getById(id) {
       return loadRaw().find((n) => n.id === id) || null;
+    },
+
+    query(searchQuery, filters, sortKey) {
+      const q = (searchQuery || "").trim().toLowerCase();
+      let notes = loadRaw();
+      if (q) notes = notes.filter((n) => searchFields(n).includes(q));
+      notes = applyFilters(notes, filters || {});
+      notes.sort((a, b) => compareNotes(a, b, sortKey || "updatedDesc"));
+      return notes;
     },
 
     create(fields) {
@@ -229,10 +301,13 @@
       const note = applyPayload(
         {
           id: newId(),
+          pinned: false,
+          archived: false,
           createdAt: now,
           updatedAt: now,
         },
-        fields
+        fields,
+        true
       );
       const notes = loadRaw();
       notes.unshift(note);
@@ -244,7 +319,7 @@
       const notes = loadRaw();
       const index = notes.findIndex((n) => n.id === id);
       if (index === -1) return null;
-      const note = applyPayload(notes[index], fields);
+      const note = applyPayload(notes[index], fields, true);
       notes[index] = note;
       save(notes);
       return note;
@@ -254,10 +329,24 @@
       save(loadRaw().filter((n) => n.id !== id));
     },
 
-    search(query) {
-      const q = (query || "").trim().toLowerCase();
-      if (!q) return global.FieldNotesData.getAll();
-      return global.FieldNotesData.getAll().filter((n) => searchFields(n).includes(q));
+    setPinned(id, pinned) {
+      const notes = loadRaw();
+      const note = notes.find((n) => n.id === id);
+      if (!note) return null;
+      note.pinned = !!pinned;
+      note.updatedAt = new Date().toISOString();
+      save(notes);
+      return note;
+    },
+
+    setArchived(id, archived) {
+      const notes = loadRaw();
+      const note = notes.find((n) => n.id === id);
+      if (!note) return null;
+      note.archived = !!archived;
+      note.updatedAt = new Date().toISOString();
+      save(notes);
+      return note;
     },
 
     exportAllJson() {
@@ -269,9 +358,24 @@
       };
     },
 
+    importNotes(rawPayload, mode) {
+      const rawList = parseImportNotes(rawPayload);
+      if (!rawList) return { ok: false, error: "Invalid backup format. Expected { notes: [...] } or an array." };
+      const imported = rawList.map(normalizeNote).filter(Boolean);
+      if (imported.length === 0 && rawList.length > 0) {
+        return { ok: false, error: "No valid notes found in file." };
+      }
+      if (mode === "replace") {
+        save(imported);
+        return { ok: true, count: imported.length, mode: "replace" };
+      }
+      const merged = mergeImportedNotes(loadRaw(), imported);
+      save(merged);
+      return { ok: true, count: imported.length, mode: "merge", total: merged.length };
+    },
+
     clearAllLocalData() {
       localStorage.removeItem(STORAGE_KEY_V2);
-      /* v1 left intact as archive; user may clear browser data manually */
     },
   };
 })(window);

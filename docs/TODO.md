@@ -14,10 +14,10 @@ Format: `- [ ] P# / size — Title` with notes.
 ## 2. UX polish
 
 - [x] P1 / M — Toast notifications for save, copy, export, delete
-- [ ] P1 / S — Focus management after modal close (expand)
-- [ ] P2 / M — Empty state with example note preview card
+- [x] P1 / S — Focus management after modal close (basic)
+- [x] P2 / M — Empty state with example note preview
 - [ ] P2 / S — Confirmation toast after JSON export with filename hint
-- [ ] P2 / M — Dark mode toggle
+- [x] P2 / M — Dark mode toggle
 
 ---
 
@@ -29,13 +29,13 @@ Format: `- [ ] P# / size — Title` with notes.
 - [x] P1 / S — Resolution summary field
 - [x] P1 / S — Escalated to field
 - [x] P1 / S — Time spent field
-- [ ] P1 / M — Filter by context / status / category
-- [ ] P1 / M — Sort by newest / oldest / status / priority
-- [ ] P2 / M — Quick templates (password reset, printer, Wi‑Fi, M365, phishing, performance, escalation, learning)
-- [ ] P2 / S — Quick-fill buttons (“Restarted device”, “Checked network”, “Escalated”)
+- [x] P1 / M — Filter by context / status / category / priority / archived / pinned
+- [x] P1 / M — Sort by newest / oldest / status / priority / category / context / summary
+- [x] P2 / M — Quick templates (12 IT scenarios)
+- [x] P2 / S — Quick-fill snippet buttons
 - [ ] P2 / S — Duplicate note
-- [ ] P2 / S — Pin important note
-- [ ] P2 / M — Archive note
+- [x] P2 / S — Pin important note
+- [x] P2 / M — Archive note
 - [ ] P2 / S — Next review date field
 
 ---
@@ -59,10 +59,10 @@ Format: `- [ ] P# / size — Title` with notes.
 
 ## 6. Accessibility
 
-- [ ] P1 / M — ARIA audit on modals and data tools
+- [x] P1 / M — ARIA labels on modals, toasts, filters (basic pass)
 - [ ] P2 / M — Keyboard shortcuts (documented)
-- [ ] P2 / S — High contrast / focus ring pass
-- [ ] P2 / S — Screen reader test on list + form
+- [x] P2 / S — High contrast / focus ring pass
+- [ ] P2 / S — Full screen reader test on list + form
 
 ---
 
@@ -73,7 +73,7 @@ Format: `- [ ] P# / size — Title` with notes.
 - [x] P1 / M — Clear all data with double confirmation + DELETE typing
 - [x] P1 / S — SECURITY_AND_PRIVACY.md
 - [ ] P1 / S — Sensitive reminder before copy/export
-- [ ] P2 / M — Privacy mode (hide list card body text)
+- [x] P2 / M — Privacy mode (hide list card body text)
 - [ ] P2 / S — Backup reminder modal before clear (link to export)
 
 ---
@@ -81,12 +81,13 @@ Format: `- [ ] P# / size — Title` with notes.
 ## 8. Data / export / import
 
 - [x] P1 / M — Export all JSON backup
-- [x] P1 / M — Extended copy/export ticket format (all v3 fields)
-- [ ] P1 / L — Import from JSON (merge + replace modes)
-- [ ] P2 / M — Export all CSV summary
-- [ ] P2 / M — Export all combined `.txt`
-- [ ] P2 / S — Copy short ticket note
-- [ ] P2 / S — Copy manager-safe summary
+- [x] P1 / M — Extended copy/export ticket format (all v3+ fields)
+- [x] P1 / L — Import from JSON (merge + replace modes)
+- [x] P2 / M — Export all CSV summary
+- [x] P2 / M — Export all combined `.txt`
+- [x] P2 / S — Copy short ticket note
+- [x] P2 / S — Copy manager-safe summary
+- [x] P2 / S — Copy escalation and learning summaries
 - [ ] P2 / S — Copy for HaloPSA format
 - [ ] P3 / M — Printable view
 
@@ -97,13 +98,13 @@ Format: `- [ ] P# / size — Title` with notes.
 - [x] P2 / M — Basic service worker shell cache
 - [x] P2 / S — Skip SW on localhost for dev
 - [ ] P2 / S — User-facing offline note in UI
-- [ ] P2 / S — Document stale cache troubleshooting (VERCEL_DEPLOYMENT)
+- [x] P2 / S — Document stale cache troubleshooting (VERCEL_DEPLOYMENT)
 
 ---
 
 ## 10. Future ideas
 
-- [ ] P3 / L — JSON import UI
 - [ ] P3 / XL — Backend sync (deferred — see ROADMAP Phase 5)
 - [ ] P3 / XL — HaloPSA API (deferred)
 - [ ] P3 / L — AI summarise note (deferred — privacy/cost)
+- [ ] P2 / S — Duplicate note shortcut

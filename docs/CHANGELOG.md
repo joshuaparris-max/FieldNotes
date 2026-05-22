@@ -1,51 +1,38 @@
 # Changelog — IT Support Field Notes
 
-All notable changes to this project are documented here.
+## [Unreleased]
+
+### Added
+- Filter & sort panel with persisted UI prefs (`fieldnotes_ui_prefs_v1`)
+- 12 incident templates and quick-fill snippets
+- Copy formats: full, short, escalation, manager-safe, learning
+- JSON import (merge / replace), CSV export, combined TXT export
+- Pin / archive notes with list filters
+- Privacy mode and dark mode (system / light / dark)
+- Improved empty state and onboarding tips
+- Schema v4: `pinned`, `archived`, `templateUsed`
+- Service worker cache `fieldnotes-shell-v4`
+
+### Fixed
+- Schema v3 upgrade persistence (raw JSON comparison before normalize)
 
 ---
 
-## [Unreleased]
+## 2026-05-22 — Documentation and workflow fields (v3)
 
-### Fixed
-- Schema v3 upgrade now compares raw stored notes before normalization so v2 incidents are persisted with `schemaVersion: 3` on first load.
-
-### Added
-- Full `docs/` documentation set (user guide, architecture, roadmap, TODO, test plan, security, decisions, Vercel guide)
-- `constants.js` for shared enums and schema version
-- Schema v3 fields: status, priority, category, resolutionSummary, timeSpent, escalatedTo
-- Status / priority / category on list cards and detail view
-- Toast notifications (save, copy, export, delete, clear)
-- Data tools: export all JSON, clear all local data (double confirm + type DELETE)
-- Reference field safety warning
-- In-place v2 → v3 normalization on load
+- Status, priority, category, resolution summary, time spent, escalated to
+- Toasts, export all JSON, safe clear data
+- Full `docs/` set and README refresh
 
 ---
 
 ## 2026-05-22 — Structured IT support incident logger
 
-### Added
-- IT Support Field Notes branding
-- Structured fields: issue, checked, changed, result, follow-up, reference, tags
-- Contexts: Avance IT, DCS, Parris Tech Services, Personal Lab, Other
-- `fieldnotes_incidents_v2` storage with v1 migration
-- Copy ticket note + manual fallback modal
-- Export single note as `.txt`
-- Web Speech dictation (optional)
-- Basic PWA: manifest, service worker, icon
-
----
-
-## 2026-05-22 — Fix broken script loading
-
-### Fixed
-- Missing JS modules (`data.js`, `format.js`, `ui.js`, `actions.js`, `boot.js`)
-- Replaced `document.write` loader with ordered script tags
-- Working list/form/detail UI and localStorage persistence
+- IT branding, structured fields, v1→v2 migration
+- Copy ticket note, export txt, voice dictation, basic PWA
 
 ---
 
 ## Initial — Static shell
 
-### Added
-- `index.html`, `app.js` (loader only), minimal `styles.css`
-- Repository scaffold for Vercel static deploy
+- `index.html` scaffold; script loader fix

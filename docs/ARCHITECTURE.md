@@ -7,12 +7,14 @@ FieldNotes is a **static single-page application**: HTML shell, CSS theme, and v
 ```
 Browser
   └── index.html
-        ├── constants.js   (enums, schema version)
-        ├── data.js        (localStorage CRUD + migration)
-        ├── format.js      (HTML escape, ticket text, badges)
-        ├── ui.js          (render views, toasts, modals)
-        ├── actions.js     (events, copy, export, voice)
-        └── boot.js          (init, service worker register)
+        ├── constants.js   (enums, schema version, sort options)
+        ├── prefs.js       (UI preferences localStorage)
+        ├── templates.js   (12 incident templates)
+        ├── data.js        (CRUD, migration, query, import)
+        ├── format.js      (escape, copy formats, CSV, combined TXT)
+        ├── ui.js          (views, filters, modals, toasts)
+        ├── actions.js     (events, copy, export, import, voice)
+        └── boot.js        (init, theme, service worker)
 ```
 
 ---
@@ -22,14 +24,16 @@ Browser
 | File | Role |
 |------|------|
 | `index.html` | Entry page, script load order, manifest link |
-| `constants.js` | Shared constants: contexts, statuses, priorities, categories, schema version |
-| `data.js` | Load/save notes, normalize schema, search, export payload, clear data |
-| `format.js` | Formatting for UI and clipboard/export |
-| `ui.js` | HTML templates for list, form, detail, modals, toasts |
-| `actions.js` | Click/submit handlers, routing between views |
-| `boot.js` | DOM ready init; register service worker (non-localhost) |
-| `styles.css` | Layout, badges, modals, toasts |
-| `service-worker.js` | Cache static shell for offline load |
+| `constants.js` | Contexts, statuses, priorities, categories, `SCHEMA_VERSION` (4), storage keys |
+| `prefs.js` | `fieldnotes_ui_prefs_v1`: filters, sort, `privacyMode`, `theme` |
+| `templates.js` | Template definitions for new-incident form |
+| `data.js` | Load/save, normalize, migrate, `query()`, pin/archive, `importNotes()` |
+| `format.js` | Ticket text variants, badges, CSV, combined TXT |
+| `ui.js` | List/form/detail, filter panel, data tools, modals |
+| `actions.js` | Handlers: templates, snippets, copy formats, import |
+| `boot.js` | DOM ready, theme from prefs, SW register (non-localhost) |
+| `styles.css` | Layout, dark mode CSS variables, a11y focus |
+| `service-worker.js` | Shell cache `fieldnotes-shell-v4` |
 | `manifest.webmanifest` | PWA metadata |
 
 ---
@@ -38,34 +42,29 @@ Browser
 
 ```
 User action (actions.js)
-    → FieldNotesData.create/update/remove/search
+    → FieldNotesData.create/update/remove/query/import
         → normalizeNote() on read/write
         → localStorage.setItem('fieldnotes_incidents_v2', JSON)
+    → FieldNotesPrefs.save() for filter/sort/theme/privacy
     → FieldNotesUI.render*
-        → innerHTML into #app
 ```
 
 Copy/export:
 
 ```
-Detail → Copy / Export
-    → FieldNotesFormat.formatTicketText(note)
-    → clipboard API or Blob download
+Detail → Copy (full | short | escalation | manager | learning)
+    → FieldNotesFormat.format*()
+    → clipboard or fallback modal
+
+Data tools → export JSON | CSV | combined TXT | import JSON
 ```
 
-Voice:
+List filtering:
 
 ```
-Dictate click → SpeechRecognition (browser)
-    → append transcript to textarea (actions.js)
-```
-
-PWA:
-
-```
-boot.js → navigator.serviceWorker.register (production host only)
-service-worker.js → cache shell assets on install
-fetch → cache-first with network update
+FieldNotesPrefs.load() + search input
+    → FieldNotesData.query(search, filters, sort)
+    → pinned first, then sort key
 ```
 
 ---
@@ -74,48 +73,66 @@ fetch → cache-first with network update
 
 | Key | Purpose |
 |-----|---------|
-| `fieldnotes_incidents_v2` | Active incident notes (schema v3 inside array) |
+| `fieldnotes_incidents_v2` | Active incident notes (schema v4 inside each note) |
+| `fieldnotes_ui_prefs_v1` | Filters, sort, privacy mode, theme |
 | `fieldnotes_notes_v1` | Legacy generic notes; migrated once if v2 empty; **not deleted** |
 
 ---
 
 ## Schema versioning
 
-- **Schema version 3** (current): adds `status`, `priority`, `category`, `resolutionSummary`, `timeSpent`, `escalatedTo`.
-- Storage key remains `fieldnotes_incidents_v2` to avoid breaking existing installs.
+- **Schema version 4** (current): adds `pinned`, `archived`, optional `templateUsed`.
+- Storage key remains `fieldnotes_incidents_v2`.
 - On load, every note passes through `normalizeNote()` with defaults.
-- `noteNeedsUpgrade()` inspects the **parsed stored JSON** (before normalization). If any note lacks v3 fields, the normalized array is written back to localStorage.
+- `noteNeedsUpgrade()` inspects **parsed stored JSON** before normalization. If any raw note lacks required fields or `schemaVersion < 4`, the upgraded array is persisted.
 
-### v1 → v2 migration
+### v1 → v2
 
-Legacy notes (`title`, `body`, `location`) convert to structured fields; `body` → `issue`, `location` → `reference` when both exist.
+Legacy notes (`title`, `body`, `location`) convert to structured fields.
 
-### v2 → v3 upgrade
+### v2 → v3
 
-In-place: existing v2 incidents gain default status/priority/category. Status may infer from `result` text (e.g. “resolved” → Resolved).
+Adds status, priority, category, resolution summary, time spent, escalated to.
+
+### v3 → v4
+
+Adds `pinned: false`, `archived: false`, optional `templateUsed`.
+
+---
+
+## Import / export
+
+**Export JSON:** `{ schemaVersion, exportedAt, notes: [...] }` — same shape import expects.
+
+**Import modes:**
+- **Merge:** New IDs for conflicts; duplicate IDs keep note with newer `updatedAt` or assign new id.
+- **Replace:** Validates JSON first; only then replaces all notes.
+
+**CSV / combined TXT:** Generated from normalized notes via `format.js`; no separate storage.
 
 ---
 
 ## No-backend rationale
 
-- Zero hosting cost and complexity on Vercel
-- No API keys or secrets in repo
-- Suitable for sensitive environments where data must not leave the device
-- Beginner-maintainable: open files, edit, refresh
+- Zero hosting cost on Vercel
+- No API keys in repo
+- Data stays on device unless user exports
+- Beginner-maintainable: edit files, refresh
 
-Trade-off: no sync, no multi-device backup without manual export.
+Trade-off: no sync; manual backup required.
 
 ---
 
-## How data flows (diagram)
+## Diagram
 
 ```mermaid
 flowchart LR
-  UI[ui.js views] --> Actions[actions.js]
+  UI[ui.js] --> Actions[actions.js]
   Actions --> Data[data.js]
+  Actions --> Prefs[prefs.js]
   Data --> LS[(localStorage)]
+  Prefs --> LS
   Actions --> Format[format.js]
-  Format --> Clipboard[Clipboard / File download]
+  Format --> Clipboard[Clipboard / download]
   Boot[boot.js] --> SW[service-worker.js]
-  SW --> Cache[(Cache API)]
 ```

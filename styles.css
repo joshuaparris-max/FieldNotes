@@ -157,6 +157,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0.55rem 1rem;
+  min-height: 44px;
   font: inherit;
   font-weight: 600;
   font-size: 0.9rem;
@@ -165,6 +166,22 @@ body {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+}
+
+.btn:focus-visible,
+.input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.toggle-chip input:focus-visible + span,
+summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
 }
 
 .btn-primary {
@@ -669,6 +686,219 @@ select.input {
   transform: translateY(0);
 }
 
+/* Top bar, filters, templates, dark mode */
+.top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  align-items: center;
+}
+
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.toggle-chip input {
+  accent-color: var(--primary);
+}
+
+.input-compact {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+.filter-panel {
+  margin-bottom: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+.filter-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.35rem 0;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.field-compact > span {
+  font-size: 0.75rem;
+}
+
+.filter-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filter-chip {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.note-archived {
+  opacity: 0.75;
+}
+
+.pill-pin {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pill-archived {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+}
+
+.quick-fill,
+.copy-menu,
+.onboarding {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0;
+}
+
+.snippet-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.btn-snippet {
+  min-height: 36px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.btn-snippet:hover {
+  border-color: var(--primary);
+}
+
+.snippet-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.snippet-target-label {
+  font-size: 0.8rem;
+}
+
+.copy-menu-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.detail-pin-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-state h3 {
+  margin-top: 0;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.privacy-banner-inline {
+  font-size: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.privacy-banner {
+  background: var(--warn-bg, #fff8e6);
+  border-color: var(--warn-border, #f0d78c);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419;
+    --surface: #1a2332;
+    --text: #e8eef4;
+    --text-muted: #9aa8b5;
+    --border: #2d3a4d;
+    --primary: #6ba3d6;
+    --primary-hover: #8bb8e0;
+    --warn-bg: #2a2410;
+    --warn-border: #5c4a1a;
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --text: #e8eef4;
+  --text-muted: #9aa8b5;
+  --border: #2d3a4d;
+  --primary: #6ba3d6;
+  --primary-hover: #8bb8e0;
+  --warn-bg: #2a2410;
+  --warn-border: #5c4a1a;
+}
+
+[data-theme="dark"] .pill-context,
+[data-theme="dark"] .pill-status,
+[data-theme="dark"] .pill-priority,
+[data-theme="dark"] .pill-category {
+  filter: brightness(0.85);
+}
+
+[data-theme="light"] {
+  --bg: #f0f4f3;
+  --surface: #ffffff;
+  --text: #1a2e28;
+  --text-muted: #5a6f68;
+  --border: #d4e0dc;
+  --primary: #1e3a5f;
+  --primary-hover: #152a47;
+}
+
 @media (min-width: 600px) {
   .app {
     padding: 2rem 1.5rem 2.5rem;
@@ -676,5 +906,22 @@ select.input {
 
   .brand h1 {
     font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .detail-btn-group,
+  .data-tools-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .data-tools-actions .btn,
+  .detail-btn-group .btn {
+    width: 100%;
   }
 }

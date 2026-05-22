@@ -62,9 +62,33 @@ Client confidential contract details
 5. Complete Issue → Checked → Changed → Result sections.
 6. Click **Save incident**.
 
-## Search
+## Search, filter, and sort
 
 Use the search box on the home list. Search matches summary, context, status, priority, category, all text fields, reference, tags, and escalated-to.
+
+Open **Filter & sort** to narrow by context, status, priority, category, pinned-only, or show archived. Filters combine with search. **Clear filters** resets filters (sort is kept). Preferences save automatically in this browser.
+
+## Templates
+
+On **+ New incident**, use **Use template** to prefill category, status, priority, prompts, and tags for common scenarios (password reset, printer, Wi‑Fi, M365, phishing, performance, 3CX, Datto, escalation, learning, etc.).
+
+If the form already has text, you will be asked to confirm before applying a template.
+
+## Quick-fill snippets
+
+On the new/edit form, expand **Quick fill** and click a snippet. It appends to the currently focused textarea (or the first prompt field if none focused).
+
+## Pin and archive
+
+On a note’s detail view: **Pin** / **Unpin** keeps important notes at the top of the list. **Archive** hides a note from the default list (use **Show archived** in filters to see them). Archived notes are not deleted.
+
+## Privacy mode
+
+Toggle **Privacy mode** in the top bar. List cards hide issue/result preview text — useful on shared screens. Only summary, badges, context, and date show.
+
+## Dark mode
+
+Use the **Theme** dropdown: System (default), Light, or Dark. Preference is saved per browser.
 
 ## Edit or delete
 
@@ -72,21 +96,37 @@ Use the search box on the home list. Search matches summary, context, status, pr
 - Click **Edit**, change fields, **Save changes**.
 - **Delete** is on the edit form (confirmation required).
 
-## Copy ticket note
+## Copy formats
 
-On the detail view, click **Copy ticket note**. A toast confirms success. If clipboard access fails, a dialog shows the text for manual copy.
+On the detail view, use the copy menu:
+
+| Button | Use when |
+|--------|----------|
+| **Copy full ticket note** | Complete handover with all fields |
+| **Copy short ticket note** | Quick ticket update |
+| **Copy escalation summary** | Tier 2 / vendor escalation |
+| **Copy manager-safe summary** | Status update without sensitive detail |
+| **Copy learning summary** | Personal learning / lab notes |
+
+Single-note **Export .txt** always uses the **full** format.
 
 ## Export single note (.txt)
 
 Click **Export .txt** on the detail view. Filename format: `fieldnote-summary-slug-YYYY-MM-DD.txt`.
 
-## Export all notes (JSON backup)
+## Export all notes
 
-On the home list, scroll to **Data tools** → **Export all JSON backup**.
+**Data tools** on the home list:
 
-File format: `fieldnotes-backup-YYYY-MM-DD.json` containing all notes and schema version.
+- **Export all JSON** — full backup for restore (`fieldnotes-backup-YYYY-MM-DD.json`)
+- **Export all CSV** — spreadsheet summary (`fieldnotes-summary-YYYY-MM-DD.csv`)
+- **Export all TXT** — every note in one file (`fieldnotes-all-notes-YYYY-MM-DD.txt`)
 
-**Restore/import from JSON is planned** — keep backups until import is available.
+## Import / restore JSON
+
+**Restore / import JSON** → choose a backup file → **Merge** (add/update; duplicate IDs resolved by newest update) or **Replace all** (requires confirmation; replaces every note after validation).
+
+Export JSON before **Clear all local data** or browser site-data clears.
 
 ## Voice dictation
 
@@ -131,4 +171,4 @@ If Dictate is greyed out, typing still works — the app does not require voice.
 
 ### Manager-safe summary
 
-Use **Resolution summary** and **Result** with neutral language — no student names, no credentials. Copy the full ticket note only after reviewing for sensitive content.
+Use **Copy manager-safe summary** or write neutral **Resolution summary** / **Result** text — no student names, no credentials. Review any copy before pasting into tickets.
