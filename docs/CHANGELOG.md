@@ -6,6 +6,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Schema v3 upgrade now compares raw stored notes before normalization so v2 incidents are persisted with `schemaVersion: 3` on first load.
+
 ### Added
 - Full `docs/` documentation set (user guide, architecture, roadmap, TODO, test plan, security, decisions, Vercel guide)
 - `constants.js` for shared enums and schema version

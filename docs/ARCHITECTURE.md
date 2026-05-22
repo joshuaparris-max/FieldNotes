@@ -84,7 +84,7 @@ fetch → cache-first with network update
 - **Schema version 3** (current): adds `status`, `priority`, `category`, `resolutionSummary`, `timeSpent`, `escalatedTo`.
 - Storage key remains `fieldnotes_incidents_v2` to avoid breaking existing installs.
 - On load, every note passes through `normalizeNote()` with defaults.
-- If stored notes lack v3 fields, they are upgraded in memory and re-saved.
+- `noteNeedsUpgrade()` inspects the **parsed stored JSON** (before normalization). If any note lacks v3 fields, the normalized array is written back to localStorage.
 
 ### v1 → v2 migration
 

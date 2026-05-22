@@ -103,11 +103,23 @@
     }
   }
 
-  /** Re-save all notes with v3 normalization (in-place upgrade) */
-  function upgradeStoredNotesIfNeeded(notes) {
-    const upgraded = notes.map(normalizeNote).filter(Boolean);
-    const needsWrite = notes.some((n, i) => n.schemaVersion !== C.SCHEMA_VERSION || !n.status);
-    if (needsWrite) save(upgraded);
+  /** True when the raw stored object is missing v3 fields (compare before normalize). */
+  function noteNeedsUpgrade(raw) {
+    if (!raw || !raw.id) return false;
+    if (isLegacyNote(raw)) return true;
+    if (raw.schemaVersion !== C.SCHEMA_VERSION) return true;
+    if (!inList(raw.status, C.STATUSES)) return true;
+    if (!inList(raw.priority, C.PRIORITIES)) return true;
+    if (!inList(raw.category, C.CATEGORIES)) return true;
+    if (!Object.prototype.hasOwnProperty.call(raw, "resolutionSummary")) return true;
+    if (!Object.prototype.hasOwnProperty.call(raw, "timeSpent")) return true;
+    if (!Object.prototype.hasOwnProperty.call(raw, "escalatedTo")) return true;
+    return false;
+  }
+
+  /** Persist normalized notes when stored JSON still lacks v3 shape. */
+  function upgradeStoredNotesIfNeeded(parsed, upgraded) {
+    if (parsed.some(noteNeedsUpgrade)) save(upgraded);
     return upgraded;
   }
 
@@ -118,8 +130,8 @@
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
-      const normalized = parsed.map(normalizeNote).filter(Boolean);
-      return upgradeStoredNotesIfNeeded(normalized);
+      const upgraded = parsed.map(normalizeNote).filter(Boolean);
+      return upgradeStoredNotesIfNeeded(parsed, upgraded);
     } catch {
       return [];
     }
