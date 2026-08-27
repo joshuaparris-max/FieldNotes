@@ -288,6 +288,19 @@
     reader.readAsText(file);
   }
 
+  function trySnapshot(reason) {
+    if (!global.FieldNotesBackup) return true;
+    try {
+      global.FieldNotesBackup.takeSnapshot(reason);
+      return true;
+    } catch (e) {
+      if (e.message === "QUOTA_EXCEEDED") {
+        return confirm("Could not create recovery point (Storage full). Continue anyway?");
+      }
+      return confirm("Failed to create safety snapshot. Continue anyway?");
+    }
+  }
+
   function confirmImport() {
     const modal = document.getElementById("import-modal");
     if (!modal) return;
@@ -295,6 +308,8 @@
     const mode = modeEl ? modeEl.value : "merge";
     const rawPayload = modal.dataset.payload;
     if (!rawPayload) return;
+
+    if (!trySnapshot(`Before import (${mode})`)) return;
 
     try {
       const data = JSON.parse(rawPayload);
@@ -316,6 +331,7 @@
   }
 
   function clearAllDataFinal() {
+    if (!trySnapshot("Before clear data")) return;
     Data.clearAllLocalData();
     UI.closeClearDataModal();
     UI.showToast("All local notes cleared");
@@ -404,6 +420,7 @@
         break;
       case "delete":
         if (id && confirm("Delete this incident? Cannot be undone.")) {
+          if (!trySnapshot("Before delete")) return;
           Data.remove(id);
           UI.showToast("Deleted incident");
           showList();
@@ -458,12 +475,13 @@
         if (confirm("Restore this local snapshot? Your current notes will be overwritten (but snapshotted first).")) {
           const ts = parseInt(el.getAttribute("data-ts"), 10);
           if (global.FieldNotesBackup) {
-            global.FieldNotesBackup.takeSnapshot("Before snapshot rollback");
+            const dateStr = new Date(ts).toLocaleString();
+            if (!trySnapshot(`Before rollback to ${dateStr}`)) return;
             if (global.FieldNotesBackup.restoreSnapshot(ts)) {
               UI.showToast("Snapshot restored successfully");
               showList();
             } else {
-              UI.showToast("Failed to restore snapshot");
+              UI.showToast("Failed to restore snapshot (Corrupt or missing)");
             }
           }
         }

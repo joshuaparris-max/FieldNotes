@@ -14,23 +14,31 @@
   }
 
   function saveSnapshots(snapshots) {
-    localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(snapshots));
+    try {
+      localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(snapshots));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.message.includes('quota')) {
+        if (snapshots.length > 1) {
+          snapshots.pop();
+          try {
+            localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(snapshots));
+            return;
+          } catch (e2) {}
+        }
+      }
+      throw new Error("QUOTA_EXCEEDED");
+    }
   }
 
   global.FieldNotesBackup = {
     takeSnapshot(reason) {
       if (!global.FieldNotesData) return;
       const currentData = global.FieldNotesData.getAll();
-      if (!currentData || currentData.length === 0) return; // Don't snapshot empty state normally?
+      if (!currentData || currentData.length === 0) return;
       
       const snapshots = loadSnapshots();
-      // Avoid duplicate consecutive snapshots if data is identical
-      if (snapshots.length > 0) {
-        const lastData = JSON.stringify(snapshots[0].data);
-        const newData = JSON.stringify(currentData);
-        if (lastData === newData) return; // No changes to snapshot
-      }
-
+      // Remove deduplication to ensure safety copies are taken when genuinely needed
+      
       snapshots.unshift({
         timestamp: Date.now(),
         reason: reason || "Auto-snapshot",
