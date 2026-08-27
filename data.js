@@ -326,6 +326,7 @@
     },
 
     remove(id) {
+      if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before delete");
       save(loadRaw().filter((n) => n.id !== id));
     },
 
@@ -350,6 +351,7 @@
     },
 
     exportAllJson() {
+      if (global.FieldNotesBackup) global.FieldNotesBackup.markExternalBackup();
       return {
         app: "IT Support Field Notes",
         schemaVersion: C.SCHEMA_VERSION,
@@ -365,6 +367,9 @@
       if (imported.length === 0 && rawList.length > 0) {
         return { ok: false, error: "No valid notes found in file." };
       }
+      
+      if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before import (" + mode + ")");
+
       if (mode === "replace") {
         save(imported);
         return { ok: true, count: imported.length, mode: "replace" };
@@ -375,7 +380,12 @@
     },
 
     clearAllLocalData() {
+      if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before clear data");
       localStorage.removeItem(STORAGE_KEY_V2);
     },
+
+    overwriteAll(notesArray) {
+      save(notesArray);
+    }
   };
 })(window);

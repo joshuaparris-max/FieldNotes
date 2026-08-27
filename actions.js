@@ -261,30 +261,58 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result);
-        const modeEl = document.getElementById("import-mode");
-        const mode = modeEl ? modeEl.value : "merge";
-        if (mode === "replace" && !confirm("Replace ALL current notes with the import? This cannot be undone.")) {
-          UI.closeImportModal();
+        const rawPayload = reader.result;
+        const data = JSON.parse(rawPayload);
+        
+        let notesArray = null;
+        if (Array.isArray(data)) notesArray = data;
+        else if (data && typeof data === "object" && Array.isArray(data.notes)) notesArray = data.notes;
+        
+        if (!notesArray) {
+          UI.showToast("Invalid backup format. Expected { notes: [...] }");
           return;
         }
-        const result = Data.importNotes(data, mode);
-        if (!result.ok) {
-          UI.showToast(result.error || "Import failed");
+        
+        // Count vaguely valid notes (has summary or id)
+        const count = notesArray.filter(n => n.id || n.summary).length;
+        if (count === 0) {
+          UI.showToast("No valid notes found in file.");
           return;
         }
-        UI.closeImportModal();
-        UI.showToast(
-          mode === "replace"
-            ? `Imported ${result.count} note(s) (replaced all)`
-            : `Merged ${result.count} note(s) — ${result.total} total`
-        );
-        showList();
+
+        UI.showImportConfirmModal({ count }, rawPayload);
       } catch {
         UI.showToast("Invalid JSON file");
       }
     };
     reader.readAsText(file);
+  }
+
+  function confirmImport() {
+    const modal = document.getElementById("import-modal");
+    if (!modal) return;
+    const modeEl = document.getElementById("import-mode");
+    const mode = modeEl ? modeEl.value : "merge";
+    const rawPayload = modal.dataset.payload;
+    if (!rawPayload) return;
+
+    try {
+      const data = JSON.parse(rawPayload);
+      const result = Data.importNotes(data, mode);
+      if (!result.ok) {
+        UI.showToast(result.error || "Import failed");
+        return;
+      }
+      UI.closeImportModal();
+      UI.showToast(
+        mode === "replace"
+          ? `Imported ${result.count} note(s) (replaced all)`
+          : `Merged ${result.count} note(s) — ${result.total} total`
+      );
+      showList();
+    } catch (e) {
+      UI.showToast("Error during import.");
+    }
   }
 
   function clearAllDataFinal() {
@@ -309,6 +337,7 @@
       if (!btn) return;
       e.preventDefault();
       if (btn.getAttribute("data-action") === "close-import-modal") UI.closeImportModal();
+      if (btn.getAttribute("data-action") === "import-json-confirm") confirmImport();
       if (btn.getAttribute("data-action") === "import-json-pick") {
         document.getElementById("import-json-file")?.click();
       }
@@ -406,7 +435,9 @@
       case "export-all-json": exportAllJson(); break;
       case "export-csv": exportCsv(); break;
       case "export-combined-txt": exportCombinedTxt(); break;
-      case "import-json-start": UI.showImportModal(); break;
+      case "import-json-start": 
+        document.getElementById("import-json-file")?.click(); 
+        break;
       case "clear-data-start": UI.showClearDataModal(1); break;
       case "clear-filters": clearFilters(); break;
       case "toggle-privacy":
@@ -422,6 +453,20 @@
         break;
       case "snippet":
         appendSnippet(el.getAttribute("data-text"));
+        break;
+      case "restore-snapshot":
+        if (confirm("Restore this local snapshot? Your current notes will be overwritten (but snapshotted first).")) {
+          const ts = parseInt(el.getAttribute("data-ts"), 10);
+          if (global.FieldNotesBackup) {
+            global.FieldNotesBackup.takeSnapshot("Before snapshot rollback");
+            if (global.FieldNotesBackup.restoreSnapshot(ts)) {
+              UI.showToast("Snapshot restored successfully");
+              showList();
+            } else {
+              UI.showToast("Failed to restore snapshot");
+            }
+          }
+        }
         break;
       case "snippet-target": {
         state.snippetTarget = el.getAttribute("data-field");

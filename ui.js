@@ -72,19 +72,41 @@
     `;
   }
 
+  function renderSnapshots() {
+    if (!global.FieldNotesBackup) return "";
+    const snaps = global.FieldNotesBackup.getSnapshots();
+    if (snaps.length === 0) return "<p class='muted'>No local recovery points yet.</p>";
+    return `<ul class="snapshot-list">` + snaps.map(s => {
+      const date = new Date(s.timestamp).toLocaleString();
+      return `<li>
+        <span><strong>${date}</strong> (${s.reason}) - ${s.count} notes</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="restore-snapshot" data-ts="${s.timestamp}">Rollback</button>
+      </li>`;
+    }).join("") + `</ul>`;
+  }
+
   function dataToolsPanel() {
+    const lastBackup = global.FieldNotesBackup ? global.FieldNotesBackup.getLastExternalBackup() : null;
+    const backupText = lastBackup ? new Date(lastBackup).toLocaleString() : "Never";
+    
     return `
       <section class="data-tools" aria-labelledby="data-tools-heading">
         <h2 id="data-tools-heading" class="data-tools-title">Data tools</h2>
         <p class="data-tools-note">Notes exist only in this browser. Export backups before clearing data.</p>
+        <p class="data-tools-note"><strong>Last external backup:</strong> ${backupText}</p>
+        
         <div class="data-tools-actions">
-          <button type="button" class="btn btn-secondary" data-action="export-all-json">Export all JSON</button>
+          <button type="button" class="btn btn-primary" data-action="export-all-json">Export all JSON (Backup)</button>
+          <button type="button" class="btn btn-secondary" data-action="import-json-start">Restore / import JSON</button>
           <button type="button" class="btn btn-secondary" data-action="export-csv">Export all CSV</button>
           <button type="button" class="btn btn-secondary" data-action="export-combined-txt">Export all TXT</button>
-          <button type="button" class="btn btn-secondary" data-action="import-json-start">Restore / import JSON</button>
           <button type="button" class="btn btn-danger-outline" data-action="clear-data-start">Clear all local data…</button>
         </div>
         <input type="file" id="import-json-file" accept=".json,application/json" class="sr-only" aria-hidden="true">
+        
+        <h3 style="margin-top:2rem; font-size:1.1rem;">Automatic Local Recovery Points</h3>
+        <p class="data-tools-note">The last 5 destructive actions are snapshot below to prevent accidental data loss.</p>
+        ${renderSnapshots()}
       </section>
     `;
   }
@@ -215,6 +237,18 @@
     `;
   }
 
+  function backupBanner() {
+    if (!global.FieldNotesBackup) return "";
+    const lastBackup = global.FieldNotesBackup.getLastExternalBackup();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    if (!lastBackup || (now - lastBackup > oneWeek)) {
+      const msg = !lastBackup ? "No external JSON backup found." : "Your last external JSON backup is over a week old.";
+      return `<div class="privacy-banner" style="background: var(--c-danger-bg); color: var(--c-danger-text); border: 1px solid var(--c-danger-border); border-radius: 4px; padding: 0.5rem; margin-bottom: 1rem;"><strong>Data Risk:</strong> ${msg} Please export a backup from the Data Tools menu below.</div>`;
+    }
+    return "";
+  }
+
   function listView(notes, searchQuery, prefs) {
     const privacy = prefs.privacyMode;
     const listItems =
@@ -254,6 +288,7 @@
         </div>
         <button type="button" class="btn btn-primary" data-action="new">+ New incident</button>
       </section>
+      ${backupBanner()}
       ${filterSortPanel(prefs)}
       <ul class="note-list" role="list">${listItems}</ul>
     `,
@@ -504,26 +539,30 @@
     }
   }
 
-  function importModal() {
+  function importConfirmModal(stats, rawPayload) {
     const existing = document.getElementById("import-modal");
     if (existing) existing.remove();
     const modal = document.createElement("div");
     modal.id = "import-modal";
     modal.className = "modal-overlay";
+    
+    // Store payload in the DOM for retrieval on confirm
+    modal.dataset.payload = rawPayload;
+
     modal.innerHTML = `
       <div class="modal-panel" role="dialog" aria-modal="true">
-        <h2>Import JSON backup</h2>
-        <p>Choose a <code>fieldnotes-backup-*.json</code> file from this app.</p>
-        <label class="field"><span>Import mode</span>
+        <h2>Confirm Import</h2>
+        <p>Found <strong>${stats.count}</strong> valid notes in backup file.</p>
+        <label class="field" style="margin-top:1rem;"><span>Import mode</span>
           <select id="import-mode" class="input">
             <option value="merge">Merge — keep existing, update duplicates by date</option>
             <option value="replace">Replace all — overwrite current notes</option>
           </select>
         </label>
-        <p class="field-warning" id="import-replace-warn" hidden>Replace will remove all current notes after validation.</p>
-        <div class="form-actions">
+        <p class="field-warning" id="import-replace-warn" hidden>Replace will wipe all current notes (a local snapshot will be taken).</p>
+        <div class="form-actions" style="margin-top:1.5rem;">
           <button type="button" class="btn btn-ghost" data-action="close-import-modal">Cancel</button>
-          <button type="button" class="btn btn-primary" data-action="import-json-pick">Choose file…</button>
+          <button type="button" class="btn btn-primary" data-action="import-json-confirm">Apply Import</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -577,7 +616,7 @@
     closeCopyModal,
     showClearDataModal: clearDataModal,
     closeClearDataModal,
-    showImportModal: importModal,
+    showImportConfirmModal: importConfirmModal,
     closeImportModal,
   };
 })(window);
