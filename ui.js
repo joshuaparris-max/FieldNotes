@@ -369,6 +369,8 @@
         <div class="form-header detail-actions">
           <button type="button" class="btn btn-ghost" data-action="back">← All incidents</button>
           <div class="detail-btn-group">
+            <button type="button" class="btn btn-secondary" data-action="print">Print</button>
+            <button type="button" class="btn btn-secondary" data-action="duplicate" data-id="${Fmt.escapeHtml(note.id)}">Duplicate</button>
             <button type="button" class="btn btn-secondary" data-action="export-txt" data-id="${Fmt.escapeHtml(note.id)}">Export .txt</button>
             <button type="button" class="btn btn-secondary" data-action="edit" data-id="${Fmt.escapeHtml(note.id)}">Edit</button>
           </div>

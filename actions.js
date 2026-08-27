@@ -350,7 +350,7 @@
       return;
     }
 
-    if (["open", "back", "new", "edit", "delete", "copy-format", "export-txt", "toggle-pin", "toggle-archive"].includes(action)) {
+    if (["open", "back", "new", "edit", "duplicate", "print", "delete", "copy-format", "export-txt", "toggle-pin", "toggle-archive"].includes(action)) {
       e.preventDefault();
     }
 
@@ -359,6 +359,20 @@
       case "back": showList(); break;
       case "open": if (id) showDetail(id); break;
       case "edit": if (id) showEdit(id); break;
+      case "duplicate":
+        if (id) {
+          const note = Data.getById(id);
+          if (note) {
+            const dupNote = { ...note, id: undefined, createdAt: undefined, updatedAt: undefined, summary: "Copy of " + note.summary };
+            state.view = "form-new";
+            state.activeId = null;
+            UI.closeCopyModal();
+            stopDictation();
+            refreshPrefs();
+            UI.renderForm(dupNote, "new", speechAvailable);
+          }
+        }
+        break;
       case "delete":
         if (id && confirm("Delete this incident? Cannot be undone.")) {
           Data.remove(id);
@@ -368,6 +382,9 @@
         break;
       case "copy-format":
         if (id) copyFormat(id, el.getAttribute("data-format"), el);
+        break;
+      case "print":
+        window.print();
         break;
       case "export-txt": if (id) exportTxt(id); break;
       case "toggle-pin":
@@ -482,6 +499,30 @@
         if (e.target.id === "copy-modal") UI.closeCopyModal();
         if (e.target.id === "clear-modal") UI.closeClearDataModal();
         if (e.target.id === "import-modal") UI.closeImportModal();
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.querySelector(".modal-overlay")) {
+          UI.closeCopyModal();
+          UI.closeClearDataModal();
+          UI.closeImportModal();
+        } else if (state.view === "form-new" || state.view === "form-edit" || state.view === "detail") {
+          showList();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "n" && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        showNew();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "f" && !e.shiftKey && !e.altKey) {
+        if (state.view === "list") {
+          const searchEl = document.getElementById("search");
+          if (searchEl && document.activeElement !== searchEl) {
+            e.preventDefault();
+            searchEl.focus();
+          }
+        }
       }
     });
   }

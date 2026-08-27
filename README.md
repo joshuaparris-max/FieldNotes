@@ -19,10 +19,11 @@ IT support staff and learners who need fast, private field notes without a ticke
 - **Filter & sort** with saved UI preferences
 - **12 quick templates** (printer, Wi‑Fi, M365, escalation, learning, etc.)
 - **Quick-fill snippets** for common troubleshooting phrases
-- **5 copy formats** (full, short, escalation, manager-safe, learning)
+- **6 copy formats** (full, short, escalation, manager-safe, learning, HaloPSA)
 - Export single `.txt`, **all JSON**, **CSV summary**, **combined TXT**
 - **Import / restore JSON** (merge or replace)
-- Pin, archive, **privacy mode**, **dark mode**
+- Pin, archive, **duplicate**, **privacy mode**, **dark mode**
+- **Keyboard shortcuts** and **Printable view**
 - Optional voice dictation and basic offline shell (PWA)
 
 ## Privacy warning
@@ -101,3 +102,11 @@ FieldNotes/
 ├── service-worker.js
 └── docs/
 ```
+
+## CHANGELOG
+
+- Added keyboard shortcuts (Ctrl+N for new, Ctrl+F for search, Esc to close modals/go back)
+- Added Printable view for note details
+- Added "Duplicate" note action
+- Added HaloPSA copy format
+

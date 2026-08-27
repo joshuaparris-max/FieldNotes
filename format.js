@@ -163,12 +163,25 @@
     ]);
   }
 
+  function formatHaloPSA(note) {
+    return blockLines([
+      ["Summary", note.summary],
+      ["Ticket Ref", note.reference],
+      ["Issue", note.issue],
+      ["Troubleshooting / Checked", note.checked],
+      ["Actions Taken", note.changed],
+      ["Result", note.result],
+      ["Next Steps", note.followUp],
+    ]);
+  }
+
   const COPY_FORMATS = {
     full: { label: "Full ticket note", fn: formatTicketText, toast: "Copied full ticket note" },
     short: { label: "Short ticket note", fn: formatShortTicket, toast: "Copied short ticket note" },
     escalation: { label: "Escalation summary", fn: formatEscalationSummary, toast: "Copied escalation summary" },
     manager: { label: "Manager-safe summary", fn: formatManagerSafe, toast: "Copied manager-safe summary" },
     learning: { label: "Learning summary", fn: formatLearningSummary, toast: "Copied learning summary" },
+    halopsa: { label: "HaloPSA format", fn: formatHaloPSA, toast: "Copied HaloPSA format" },
   };
 
   function safeExportFilename(note) {
@@ -264,6 +277,7 @@
     formatEscalationSummary,
     formatManagerSafe,
     formatLearningSummary,
+    formatHaloPSA,
     COPY_FORMATS,
     safeExportFilename,
     backupJsonFilename,

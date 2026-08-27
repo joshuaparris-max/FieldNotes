@@ -925,3 +925,15 @@ select.input {
     width: 100%;
   }
 }
+
+@media print {
+  .top-bar, .toolbar, .filter-panel, .detail-actions, .detail-pin-row, .copy-menu, .data-tools, .footer, .form-actions {
+    display: none !important;
+  }
+  .app, .detail-panel, .main {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
