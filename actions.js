@@ -475,14 +475,16 @@
         if (confirm("Restore this local snapshot? Your current notes will be overwritten (but snapshotted first).")) {
           const ts = parseInt(el.getAttribute("data-ts"), 10);
           if (global.FieldNotesBackup) {
+            const snapData = global.FieldNotesBackup.getSnapshotData(ts);
+            if (!snapData) {
+              UI.showToast("Failed to restore snapshot (Corrupt or missing)");
+              return;
+            }
             const dateStr = new Date(ts).toLocaleString();
             if (!trySnapshot(`Before rollback to ${dateStr}`)) return;
-            if (global.FieldNotesBackup.restoreSnapshot(ts)) {
-              UI.showToast("Snapshot restored successfully");
-              showList();
-            } else {
-              UI.showToast("Failed to restore snapshot (Corrupt or missing)");
-            }
+            Data.overwriteAll(snapData);
+            UI.showToast("Snapshot restored successfully");
+            showList();
           }
         }
         break;

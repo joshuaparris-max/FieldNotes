@@ -382,6 +382,7 @@
     clearAllLocalData() {
       if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before clear data");
       localStorage.removeItem(STORAGE_KEY_V2);
+      cachedRaw = [];
     },
 
     overwriteAll(notesArray) {

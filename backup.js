@@ -61,6 +61,18 @@
       }));
     },
 
+    getSnapshotData(timestamp) {
+      const snapshots = loadSnapshots();
+      const snap = snapshots.find(s => s.timestamp === timestamp);
+      if (!snap || !snap.data || !Array.isArray(snap.data)) return null;
+      // Basic validation: must be an array of objects
+      if (snap.data.length > 0) {
+         const valid = snap.data.filter(n => n && typeof n === "object" && n.id && typeof n.id === "string");
+         if (valid.length === 0) return null;
+      }
+      return snap.data;
+    },
+
     restoreSnapshot(timestamp) {
       const snapshots = loadSnapshots();
       const snap = snapshots.find(s => s.timestamp === timestamp);
