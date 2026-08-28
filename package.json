@@ -1,6 +1,6 @@
 {
   "name": "fieldnotes",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "IT Support Field Notes",
   "scripts": {
     "test": "node tests/recovery.test.js",
@@ -9,5 +9,8 @@
   "devDependencies": {
     "express": "^5.2.1",
     "puppeteer": "^25.9.0"
+  },
+  "dependencies": {
+    "uuid": "^14.0.2"
   }
 }
