@@ -327,7 +327,14 @@
 
     remove(id) {
       if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before delete");
-      save(loadRaw().filter((n) => n.id !== id));
+      const notes = loadRaw();
+      const note = notes.find((n) => n.id === id);
+      if (note) {
+         const tsList = global.FieldNotesData.getTombstones();
+         tsList.push({ id, deletedAt: new Date().toISOString() });
+         global.FieldNotesData.saveTombstones(tsList);
+      }
+      save(notes.filter((n) => n.id !== id));
     },
 
     setPinned(id, pinned) {
@@ -382,11 +389,39 @@
     clearAllLocalData() {
       if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before clear data");
       localStorage.removeItem(STORAGE_KEY_V2);
+      localStorage.removeItem(C.STORAGE_KEY_TOMBSTONES);
       cachedRaw = [];
     },
 
     overwriteAll(notesArray) {
       save(notesArray);
+    },
+
+    // Sync primitives
+    getDeviceId() {
+      let id = localStorage.getItem("fieldnotes_device_id");
+      if (!id) {
+        id = "dev_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem("fieldnotes_device_id", id);
+      }
+      return id;
+    },
+    
+    getTombstones() {
+      try {
+        return JSON.parse(localStorage.getItem(C.STORAGE_KEY_TOMBSTONES)) || [];
+      } catch (e) {
+        return [];
+      }
+    },
+    
+    saveTombstones(tsList) {
+      localStorage.setItem(C.STORAGE_KEY_TOMBSTONES, JSON.stringify(tsList));
+    },
+
+    // Low level write used by Sync
+    overwriteTombstones(tsList) {
+      this.saveTombstones(tsList);
     }
   };
 })(window);

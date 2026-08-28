@@ -488,6 +488,10 @@
           }
         }
         break;
+        case "sync-connect": syncConnect(); break;
+        case "sync-now": syncNow(); break;
+        case "sync-disconnect": syncDisconnect(); break;
+        case "resolve-conflict": syncResolveConflict(); break;
       case "snippet-target": {
         state.snippetTarget = el.getAttribute("data-field");
         const lbl = document.getElementById("snippet-target-label");
@@ -592,6 +596,181 @@
     });
   }
 
+  // --- Sync UI Logic ---
+  
+  async function updateSyncUI(statusText, forceRender = false) {
+    const textEl = document.getElementById("sync-status-text");
+    const connectBtn = document.getElementById("sync-connect-btn");
+    const nowBtn = document.getElementById("sync-now-btn");
+    const disconnectBtn = document.getElementById("sync-disconnect-btn");
+    
+    if (!textEl) return; // not rendered
+
+    const handle = await global.FieldNotesSyncFile.getStoredHandle();
+    
+    if (!handle) {
+      textEl.textContent = statusText || "Local only";
+      connectBtn.style.display = "inline-block";
+      nowBtn.style.display = "none";
+      disconnectBtn.style.display = "none";
+      return;
+    }
+
+    connectBtn.style.display = "none";
+    nowBtn.style.display = "inline-block";
+    disconnectBtn.style.display = "inline-block";
+
+    const hasPermission = await global.FieldNotesSyncFile.verifyPermission(handle, false);
+    if (!hasPermission) {
+      textEl.textContent = "Permission required";
+      textEl.style.color = "var(--c-danger-text)";
+      nowBtn.textContent = "Grant Access";
+    } else {
+      textEl.style.color = "";
+      nowBtn.textContent = "Sync Now";
+      if (statusText) {
+        textEl.textContent = statusText;
+      } else {
+        const state = global.FieldNotesSync.getSyncState();
+        if (state.pendingConflicts && state.pendingConflicts.length > 0) {
+            textEl.textContent = "Conflict detected";
+        } else if (state.lastSyncTime > 0) {
+            textEl.textContent = `Synced ${new Date(state.lastSyncTime).toLocaleTimeString()}`;
+        } else {
+            textEl.textContent = "Sync file connected";
+        }
+      }
+    }
+    if (forceRender) showList();
+  }
+
+  async function syncConnect() {
+    console.log("SYNC_CONNECT CALLED");
+    if (!global.FieldNotesSyncFile.isSupported()) {
+       UI.showToast("Direct sync files are not supported by this browser.");
+       return;
+    }
+    let handle = await global.FieldNotesSyncFile.pickFile();
+    if (!handle) handle = await global.FieldNotesSyncFile.createFile();
+    if (!handle) return; // cancelled
+    
+    UI.showToast("Sync file connected");
+    await updateSyncUI("Sync file connected", true);
+    syncNow(true);
+  }
+  
+  async function syncDisconnect() {
+    await global.FieldNotesSyncFile.disconnect();
+    const state = global.FieldNotesSync.getSyncState();
+    state.lastSyncTime = 0;
+    state.pendingConflicts = [];
+    global.FieldNotesSync.saveSyncState(state);
+    updateSyncUI("Local only", true);
+    UI.showToast("Disconnected sync file");
+  }
+
+  async function syncNow(isFirstConnection = false) {
+    console.log("SYNC_NOW CALLED");
+    if (!global.FieldNotesSyncFile.isSupported()) return;
+    
+    const handle = await global.FieldNotesSyncFile.getStoredHandle();
+    if (!handle) return;
+    
+    updateSyncUI("Syncing...");
+    
+    // Check permission
+    const hasPermission = await global.FieldNotesSyncFile.verifyPermission(handle, true);
+    if (!hasPermission) {
+       updateSyncUI("Permission required");
+       return;
+    }
+    
+    if (isFirstConnection) {
+       // Peek at remote data to show summary
+       const remoteData = await global.FieldNotesSyncFile.read(handle);
+       if (remoteData && global.FieldNotesSync.isValidEnvelope(remoteData)) {
+           const localCount = global.FieldNotesData.getAll().length;
+           const remoteCount = remoteData.notes.length;
+           const msg = `Local: ${localCount} notes\nSync file: ${remoteCount} notes\n\nMerge these datasets?`;
+           if (!confirm(msg)) {
+              syncDisconnect();
+              return;
+           }
+       }
+    }
+
+    try {
+      const res = await global.FieldNotesSync.performSync(handle, isFirstConnection);
+      if (res.ok) {
+         if (res.isEmpty) updateSyncUI("Uploaded local data");
+         else updateSyncUI(`Synced just now`);
+         showList();
+      } else {
+         if (res.permissionRequired) updateSyncUI("Permission required");
+         else if (res.conflicts) {
+            updateSyncUI("Conflict detected", true);
+            UI.showToast("Conflicts detected");
+         } else {
+            updateSyncUI(`Sync error: ${res.error}`);
+         }
+      }
+    } catch(e) {
+      updateSyncUI("Sync error \u2014 local data safe");
+      console.error("SYNC_ERROR_CAUGHT:", e.stack || e);
+    }
+  }
+
+  function syncResolveConflict() {
+      const state = global.FieldNotesSync.getSyncState();
+      if (!state.pendingConflicts || state.pendingConflicts.length === 0) {
+         UI.showToast("No conflicts to resolve");
+         showList();
+         return;
+      }
+      const conflict = state.pendingConflicts[0]; // resolve one by one
+      
+      const choice = prompt("Sync conflict for note: '" + (conflict.local.summary || 'Unknown') + "'.\nEnter 1 to Keep Local, 2 to Keep Remote, 3 to Keep Both.");
+      if (choice === "1") {
+         // Keep local: overwrite remote's change. Update local timestamp to guarantee it wins next sync.
+         if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Local)");
+         const notes = global.FieldNotesData.getAll();
+         const idx = notes.findIndex(n => n.id === conflict.local.id);
+         if (idx !== -1) {
+            notes[idx].updatedAt = new Date().toISOString();
+            global.FieldNotesData.overwriteAll(notes);
+         }
+      } else if (choice === "2") {
+         // Keep remote: replace local note with remote
+         if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Remote)");
+         const notes = global.FieldNotesData.getAll();
+         const idx = notes.findIndex(n => n.id === conflict.local.id);
+         if (idx !== -1) {
+            notes[idx] = conflict.remote;
+            global.FieldNotesData.overwriteAll(notes);
+         }
+      } else if (choice === "3") {
+         // Keep both: Remote keeps ID, local gets new ID
+         if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Both)");
+         const notes = global.FieldNotesData.getAll();
+         const idx = notes.findIndex(n => n.id === conflict.local.id);
+         if (idx !== -1) {
+            notes[idx] = conflict.remote;
+            const cloned = { ...conflict.local, id: "inc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), updatedAt: new Date().toISOString() };
+            notes.unshift(cloned);
+            global.FieldNotesData.overwriteAll(notes);
+         }
+      } else {
+         return; // cancelled
+      }
+      
+      // Remove this conflict and re-sync
+      state.pendingConflicts.shift();
+      global.FieldNotesSync.saveSyncState(state);
+      syncNow();
+  }
+
+  // --- /Sync UI Logic ---
+
   global.FieldNotesActions = {
     state,
     speechAvailable: () => speechAvailable,
@@ -600,5 +779,7 @@
     showDetail,
     showEdit,
     bind,
+    updateSyncUI,
+    syncNow
   };
 })(window);

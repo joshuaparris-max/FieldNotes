@@ -21,6 +21,9 @@
     }
     FieldNotesActions.bind();
     FieldNotesActions.showList();
+    if (FieldNotesActions.updateSyncUI) {
+      FieldNotesActions.updateSyncUI();
+    }
     registerServiceWorker();
   }
 

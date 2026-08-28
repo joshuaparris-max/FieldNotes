@@ -89,6 +89,9 @@
     const lastBackup = global.FieldNotesBackup ? global.FieldNotesBackup.getLastExternalBackup() : null;
     const backupText = lastBackup ? new Date(lastBackup).toLocaleString() : "Never";
     
+    const syncState = global.FieldNotesSync ? global.FieldNotesSync.getSyncState() : { lastSyncTime: 0 };
+    const hasConflicts = syncState.pendingConflicts && syncState.pendingConflicts.length > 0;
+    
     return `
       <section class="data-tools" aria-labelledby="data-tools-heading">
         <h2 id="data-tools-heading" class="data-tools-title">Data tools</h2>
@@ -103,6 +106,28 @@
           <button type="button" class="btn btn-danger-outline" data-action="clear-data-start">Clear all local data…</button>
         </div>
         <input type="file" id="import-json-file" accept=".json,application/json" class="sr-only" aria-hidden="true">
+        
+        <h3 style="margin-top:2rem; font-size:1.1rem;">Sync / Portability (Beta)</h3>
+        <p class="data-tools-note">Sync notes across devices using a local file (e.g. in your Dropbox, Google Drive, or OneDrive folder).</p>
+        
+        <div class="sync-status-box" style="padding: 1rem; border: 1px solid var(--c-border); border-radius: 4px; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+           <div>
+              <strong id="sync-status-text">Loading sync status...</strong>
+           </div>
+           <div style="display:flex; gap:0.5rem;">
+              <button type="button" class="btn btn-secondary" data-action="sync-connect" id="sync-connect-btn">Connect sync file</button>
+              <button type="button" class="btn btn-primary" data-action="sync-now" id="sync-now-btn" style="display:none;">Sync Now</button>
+              <button type="button" class="btn btn-danger-outline" data-action="sync-disconnect" id="sync-disconnect-btn" style="display:none;">Disconnect</button>
+           </div>
+        </div>
+
+        ${hasConflicts ? `
+        <div style="background: var(--c-danger-bg); border: 1px solid var(--c-danger-border); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+           <strong>Sync Conflict Detected!</strong>
+           <p>A note was changed on two devices simultaneously.</p>
+           <button type="button" class="btn btn-primary" data-action="resolve-conflict">Resolve Conflict</button>
+        </div>
+        ` : ''}
         
         <h3 style="margin-top:2rem; font-size:1.1rem;">Automatic Local Recovery Points</h3>
         <p class="data-tools-note">The last 5 destructive actions are snapshot below to prevent accidental data loss.</p>

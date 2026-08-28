@@ -4,8 +4,9 @@
 (function (global) {
   global.FieldNotesConstants = {
     SCHEMA_VERSION: 4,
+    STORAGE_KEY_V1: "fieldnotes_data_v1",
     STORAGE_KEY_V2: "fieldnotes_incidents_v2",
-    STORAGE_KEY_V1: "fieldnotes_notes_v1",
+    STORAGE_KEY_TOMBSTONES: "fieldnotes_tombstones_v1",
     UI_PREFS_KEY: "fieldnotes_ui_prefs_v1",
 
     CONTEXTS: [
