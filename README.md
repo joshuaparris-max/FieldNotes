@@ -32,7 +32,7 @@ IT support staff and learners who need fast, private field notes without a ticke
 
 **Data Safety**: FieldNotes protects your data. Any destructive action (deleting a note, clearing data, importing JSON, resolving sync conflicts) automatically generates an internal safety snapshot. If you make a mistake, you can restore from the last 5 snapshots directly in the UI.
 
-**BYOS Sync**: Sync across devices without a dedicated cloud backend. Select a local JSON file (e.g., inside a Dropbox, OneDrive, Google Drive, or Syncthing folder) and FieldNotes will persist permission to it via IndexedDB. It uses a **true 3-way merge algorithm** to detect and resolve offline concurrent edits and deletions safely.
+**BYOS Sync**: Sync across devices without a dedicated cloud backend. Select a local JSON file (e.g., inside a Dropbox, OneDrive, Google Drive, or Syncthing folder). FieldNotes stores the selected FileSystemFileHandle in IndexedDB so it can remember which sync file you selected. Browser read/write permission is separate and may need to be granted again after reopening the browser. If so, FieldNotes will show a `Permission required` status, but your local notes remain safe and usable regardless. It uses a **true 3-way merge algorithm** to detect and resolve offline concurrent edits and deletions safely.
 
 ## Privacy warning
 
@@ -43,11 +43,15 @@ Do not store passwords, student names, client-sensitive information, or private 
 | Key/Store | Purpose |
 |-----|---------|
 | `fieldnotes_incidents_v2` | Incident notes (schema v4 inside) |
+| `fieldnotes_data_v1` | Legacy notes (auto-migrated to v2) |
 | `fieldnotes_ui_prefs_v1` | Filters, sort, theme, privacy mode |
 | `fieldnotes_snapshots_v1` | Data Safety automatic backup snapshots |
+| `fieldnotes_last_export` | Timestamp of the last JSON backup |
+| `fieldnotes_device_id` | Random UUID for multi-device sync conflict resolution |
 | `fieldnotes_sync_base_v1` | Common ancestor snapshot for 3-way merge sync |
+| `fieldnotes_sync_state_v1`| Sync UI state and pending conflicts |
 | `fieldnotes_tombstones_v1`| Deleted note IDs for sync deletion tracking |
-| `fieldnotes_sync_db` | IndexedDB store for the persisted FileSystemFileHandle |
+| `FieldNotesSyncDB` | IndexedDB store (`handles`) for the persisted FileSystemFileHandle |
 
 Export JSON regularly before clearing browser data.
 
@@ -72,7 +76,7 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/)
 
 ## Known limitations
 
-- **Sync Browser Support**: BYOS Sync requires Chromium-based desktop browsers (Chrome, Edge, Brave) that support the File System Access API. Mobile browsers (iOS Safari, Android Chrome) and Firefox do not currently support persistent local file handles for syncing.
+- **Sync Browser Support**: BYOS Sync targets Chromium-based desktop browsers (Chrome, Edge, Brave) that support the full File System Access API. Mobile browsers and Firefox do not currently support persistent local file handles for syncing. FieldNotes feature-detects the required picker and read/write APIs, and gracefully falls back to local-only operation where unsupported.
 - **Unencrypted Sync Payload**: Sync files are currently plain JSON. (Encryption via WebCrypto is planned for Sync v1.1).
 - No HaloPSA API integration.
 - Voice input varies by browser.
