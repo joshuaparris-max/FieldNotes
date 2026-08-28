@@ -727,40 +727,86 @@
          showList();
          return;
       }
-      const conflict = state.pendingConflicts[0]; // resolve one by one
-      
+      const conflict = state.pendingConflicts[0]; 
+      console.log("RESOLVING CONFLICT:", JSON.stringify(conflict));
       const choice = prompt("Sync conflict for note: '" + (conflict.local.summary || 'Unknown') + "'.\nEnter 1 to Keep Local, 2 to Keep Remote, 3 to Keep Both.");
       if (choice === "1") {
-         // Keep local: overwrite remote's change. Update local timestamp to guarantee it wins next sync.
          if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Local)");
          const notes = global.FieldNotesData.getAll();
+         const tombs = global.FieldNotesData.getTombstones();
          const idx = notes.findIndex(n => n.id === conflict.local.id);
-         if (idx !== -1) {
-            notes[idx].updatedAt = new Date().toISOString();
-            global.FieldNotesData.overwriteAll(notes);
+         if (conflict.local.deleted) {
+             if (idx !== -1) notes.splice(idx, 1);
+             const tIdx = tombs.findIndex(t => t.id === conflict.local.id);
+             if (tIdx === -1) tombs.push({ id: conflict.local.id, deletedAt: new Date().toISOString() });
+             else tombs[tIdx].deletedAt = new Date().toISOString();
+         } else {
+             if (idx !== -1) notes[idx].updatedAt = new Date().toISOString();
+             else notes.unshift({ ...conflict.local, updatedAt: new Date().toISOString() });
+             const tIdx = tombs.findIndex(t => t.id === conflict.local.id);
+             if (tIdx !== -1) tombs.splice(tIdx, 1);
          }
+         global.FieldNotesData.overwriteAll(notes);
+         global.FieldNotesData.overwriteTombstones(tombs);
       } else if (choice === "2") {
-         // Keep remote: replace local note with remote
          if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Remote)");
          const notes = global.FieldNotesData.getAll();
-         const idx = notes.findIndex(n => n.id === conflict.local.id);
-         if (idx !== -1) {
-            notes[idx] = conflict.remote;
-            global.FieldNotesData.overwriteAll(notes);
+         const tombs = global.FieldNotesData.getTombstones();
+         const targetId = conflict.remote.id || conflict.local.id;
+         const idx = notes.findIndex(n => n.id === targetId);
+         if (conflict.remote.deleted) {
+             if (idx !== -1) notes.splice(idx, 1);
+             const tIdx = tombs.findIndex(t => t.id === targetId);
+             if (tIdx === -1) tombs.push({ id: targetId, deletedAt: new Date().toISOString() });
+             else tombs[tIdx].deletedAt = new Date().toISOString(); 
+         } else {
+             if (idx !== -1) notes[idx] = { ...conflict.remote, updatedAt: new Date().toISOString() };
+             else notes.unshift({ ...conflict.remote, updatedAt: new Date().toISOString() });
+             const tIdx = tombs.findIndex(t => t.id === targetId);
+             if (tIdx !== -1) tombs.splice(tIdx, 1);
          }
+         global.FieldNotesData.overwriteAll(notes);
+         global.FieldNotesData.overwriteTombstones(tombs);
       } else if (choice === "3") {
-         // Keep both: Remote keeps ID, local gets new ID
+         if (conflict.local.deleted || conflict.remote.deleted) {
+             alert("Cannot Keep Both when one version is deleted. Please sync again and choose Local or Remote.");
+             return;
+         }
          if (global.FieldNotesBackup) global.FieldNotesBackup.takeSnapshot("Before conflict resolution (Keep Both)");
          const notes = global.FieldNotesData.getAll();
+         const tombs = global.FieldNotesData.getTombstones();
          const idx = notes.findIndex(n => n.id === conflict.local.id);
          if (idx !== -1) {
-            notes[idx] = conflict.remote;
+            notes[idx] = { ...conflict.remote, updatedAt: new Date().toISOString() };
             const cloned = { ...conflict.local, id: "inc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), updatedAt: new Date().toISOString() };
             notes.unshift(cloned);
-            global.FieldNotesData.overwriteAll(notes);
+         } else {
+            notes.unshift({ ...conflict.remote, updatedAt: new Date().toISOString() });
+            const cloned = { ...conflict.local, id: "inc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), updatedAt: new Date().toISOString() };
+            notes.unshift(cloned);
          }
+         const tIdx = tombs.findIndex(t => t.id === conflict.local.id);
+         if (tIdx !== -1) tombs.splice(tIdx, 1);
+         global.FieldNotesData.overwriteAll(notes);
+         global.FieldNotesData.overwriteTombstones(tombs);
       } else {
-         return; // cancelled
+         return; 
+      }
+      
+      const baseRaw = localStorage.getItem("fieldnotes_sync_base_v1");
+      if (baseRaw) {
+          let base = JSON.parse(baseRaw);
+          const targetId = conflict.remote.id || conflict.local.id;
+          if (conflict.remote.deleted) {
+              base.notes = base.notes.filter(n => n.id !== targetId);
+              if (!base.tombstones.find(t => t.id === targetId)) base.tombstones.push({ id: targetId, deletedAt: new Date().toISOString() });
+          } else {
+              const bIdx = base.notes.findIndex(n => n.id === targetId);
+              if (bIdx !== -1) base.notes[bIdx] = conflict.remote;
+              else base.notes.push(conflict.remote);
+              base.tombstones = base.tombstones.filter(t => t.id !== targetId);
+          }
+          localStorage.setItem("fieldnotes_sync_base_v1", JSON.stringify(base));
       }
       
       // Remove this conflict and re-sync
